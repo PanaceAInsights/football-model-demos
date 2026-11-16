@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Interactive animations of three patterns from Frank Horn's Football Model 2026, with decision questions.">
+<title>Football Model Animations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Floodlit tactics board: dark slate frame, the pitch is the hero, amber marks our move, pale blue marks theirs.
+     Layout: scene tabs on top; pitch left and explanation right on wide screens; stacked pitch-first on phones. */
+  --bg:#0d191e;
+  --panel:#14242a;
+  --edge:#25393f;
+  --ink:#eaf0ec;
+  --muted:#9db1ab;
+  --accent:#f2b23a;
+  --them:#3f7df2;
+  --good:#62d391;
+  --bad:#ff8574;
+  --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --font-body:"Source Sans 3","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:14px 16px 28px;display:grid;gap:14px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:5px}
+.tab{font:inherit;font-weight:600;font-size:15px;color:var(--muted);background:transparent;border:0;border-radius:8px;padding:9px 6px;cursor:pointer;min-height:42px;line-height:1.15}
+.tab[aria-selected="true"]{background:var(--accent);color:#1b1404}
+.eyebrow{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--font-display);font-weight:700;font-size:34px;line-height:1.02;margin:2px 0 4px;letter-spacing:.01em;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{margin:0;color:var(--muted);max-width:62ch}
+.layout{display:grid;gap:14px}
+@media (min-width:880px){
+  .layout{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}
+  h1{font-size:42px}
+}
+.stage{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:10px;display:grid;gap:10px}
+.readouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ro{background:#0f1d22;border:1px solid var(--edge);border-radius:10px;padding:7px 9px;min-width:0}
+.ro .l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro .v{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ro .v.dim{color:#5d726c}
+.ro .v.good{color:var(--good)}
+.ro .v.live{color:var(--accent)}
+#pitch{display:block;width:100%;height:auto;border-radius:8px;touch-action:manipulation}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);padding:0 4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:1.5px solid #0b1418}
+.dot.us{background:#f6f5ef}
+.dot.them{background:var(--them)}
+.ln{width:22px;height:0;border-top:2.5px solid var(--accent);display:inline-block}
+.ln.theirs{border-top-color:#9cc0ff}
+.ln.run{border-top-style:dashed}
+.ln.drib{border-top-style:dotted;border-top-width:3px}
+.scrubrow{display:flex;align-items:center;gap:10px;padding:0 4px}
+.scrubrow label{font-size:13px;color:var(--muted);white-space:nowrap}
+#scrub{flex:1;accent-color:var(--accent);height:24px}
+.panel{display:grid;gap:12px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.chip{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:8px 10px;display:flex;align-items:baseline;gap:8px;font-family:var(--font-display);font-size:21px;font-weight:600;color:var(--muted);min-width:0;white-space:nowrap}
+.chip b{font-size:15px;font-weight:700;width:22px;height:22px;flex:none;border-radius:50%;display:inline-grid;place-items:center;background:var(--edge);color:var(--ink);transform:translateY(-2px)}
+.chip.on{border-color:var(--accent);color:var(--ink)}
+.chip.on b{background:var(--accent);color:#1b1404}
+.chip.done{color:var(--ink)}
+.chip.done b{background:#3a4f47}
+.card{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:14px 16px}
+.card h2{font-family:var(--font-display);font-size:24px;font-weight:700;margin:0 0 4px;letter-spacing:.01em}
+.card p{margin:0;max-width:62ch}
+.qcard{border-color:var(--accent)}
+.qcard .qlabel{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.qcard .prompt{font-weight:600;margin-bottom:10px}
+.opts{display:grid;gap:8px}
+.opt{font:inherit;text-align:left;color:var(--ink);background:#0f1d22;border:1px solid var(--edge);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;min-height:44px}
+.opt:hover{border-color:#3d5a52}
+.opt .k{font-family:var(--font-display);font-weight:700;color:var(--muted);min-width:14px}
+.opt.right{border-color:var(--good);background:rgba(98,211,145,.12)}
+.opt.wrong{border-color:var(--bad);background:rgba(255,133,116,.10)}
+.opt[disabled]{cursor:default}
+.feedback{margin-top:10px;display:grid;gap:10px}
+.verdict{font-weight:700}
+.verdict.good{color:var(--good)}
+.verdict.badv{color:var(--bad)}
+.controls{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:inherit;font-weight:600;color:var(--ink);background:#1c3037;border:1px solid var(--edge);border-radius:999px;padding:9px 16px;cursor:pointer;min-height:42px}
+.btn:hover{background:#22393f}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#1b1404;min-width:96px}
+.btn.primary:hover{background:#f7c25d}
+.btn[disabled]{opacity:.45;cursor:default}
+.btn.toggle[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.btn:focus-visible,.opt:focus-visible,.tab:focus-visible,#scrub:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:12px 16px}
+summary{cursor:pointer;font-weight:600}
+details ol{margin:10px 0;padding-left:20px;display:grid;gap:6px;max-width:62ch}
+details p{margin:8px 0 6px;color:var(--muted);font-size:14px}
+pre{margin:0;background:#0a1417;border:1px solid var(--edge);border-radius:8px;padding:10px;font-size:12.5px;line-height:1.4;overflow-x:auto;color:#cfe0d8}
+footer{font-size:13px;color:var(--muted);max-width:75ch;display:grid;gap:4px}
+.hidden{display:none !important}
+.svgt{font-family:var(--font-body)}
+.svgd{font-family:var(--font-display)}
+@media (max-width:420px){
+  .chip{font-size:18px;padding:7px 8px;gap:6px}
+  .ro .v{font-size:19px}
+  .tab{font-size:14px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .chip,.opt,.btn,.tab{transition:background-color .15s,border-color .15s,color .15s}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="tabs" role="tablist" aria-label="Scenes">
+    <button class="tab" role="tab" id="tab-third-man" type="button">3rd man</button>
+    <button class="tab" role="tab" id="tab-counter-press" type="button">Counter press</button>
+    <button class="tab" role="tab" id="tab-goal-kick-press" type="button">Goal-kick trap</button>
+  </nav>
+
+  <header>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <div class="layout">
+    <section class="stage" aria-label="Animated pitch">
+      <div class="readouts" id="readouts"></div>
+      <svg id="pitch" role="img"></svg>
+      <div class="scrubrow">
+        <label for="scrub">Timeline</label>
+        <input id="scrub" type="range" min="0" max="10" step="0.01" value="0" aria-label="Animation timeline">
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="dot us"></i>Our team</span>
+        <span><i class="dot them"></i>Opponents</span>
+        <span><i class="ln"></i>Our pass</span>
+        <span><i class="ln theirs"></i>Their pass</span>
+        <span><i class="ln run"></i>Run</span>
+        <span><i class="ln drib"></i>Run with ball</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="chips" aria-label="Steps">
+        <div class="chip" id="chip1"><b>1</b><span></span></div>
+        <div class="chip" id="chip2"><b>2</b><span></span></div>
+        <div class="chip" id="chip3"><b>3</b><span></span></div>
+      </div>
+
+      <div class="card" id="captionCard" aria-live="polite">
+        <h2 id="capTitle"></h2>
+        <p id="capText"></p>
+      </div>
+
+      <div class="card qcard hidden" id="qCard" aria-live="polite">
+        <div class="qlabel" id="qLabel">Your call</div>
+        <div class="prompt" id="qPrompt"></div>
+        <div class="opts" id="qOpts"></div>
+        <div class="feedback hidden" id="qFeedback">
+          <div><span class="verdict" id="qVerdict"></span> <span id="qExplain"></span></div>
+          <div><button class="btn primary" id="qContinue" type="button">Continue</button></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary" id="playBtn" type="button">Play</button>
+        <button class="btn" id="replayBtn" type="button">Replay</button>
+        <button class="btn toggle" id="slowBtn" type="button" aria-pressed="false">Slow motion</button>
+        <button class="btn toggle" id="ovBtn" type="button" aria-pressed="true">Overlays</button>
+        <button class="btn toggle" id="qBtn" type="button" aria-pressed="true">Pause for questions</button>
+      </div>
+
+      <details>
+        <summary>How these animations were made</summary>
+        <ol>
+          <li>Start from the pattern as written in the Football Model, including its diagrams.</li>
+          <li>Write the move down as data: where each player and the ball are at each moment. AI drafted this from the manual's text and diagrams.</li>
+          <li>Draw the pitch, players, ball and measurements from that data. The same data always gives the same animation, so a coach changes a run or a pass by editing a number instead of redrawing a diagram.</li>
+        </ol>
+        <p id="sampleLabel"></p>
+        <pre id="dataSample"></pre>
+      </details>
+    </section>
+  </div>
+
+  <footer>
+    <div id="sceneNote"></div>
+    <div>Prototype for discussion, built from Frank Horn's Football Model 2026. Player positions are illustrative.</div>
+    <div>Also: <a href="card.html" style="color:var(--accent)">Holding Midfielder position card</a> (printable, A4).</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---------- Geometry: pitch metres to SVG units. Attacking upwards; their goal line is y = 105. ----------
+  const S = 10, X0 = -2, Y1 = 106.5;
+  const sx = x => (x - X0) * S;
+  const sy = y => (Y1 - y) * S;
+  const NS = "http://www.w3.org/2000/svg";
+  const AMBER = "#f2b23a", THEIRS = "#9cc0ff";
+
+  // ---------- Interpolation ----------
+  function hermiteTrack(kf){
+    const n = kf.length, m = [];
+    for(let i=0;i<n;i++){
+      const prev = kf[Math.max(0,i-1)], next = kf[Math.min(n-1,i+1)], cur = kf[i];
+      const holdPrev = i>0 && prev[1]===cur[1] && prev[2]===cur[2];
+      const holdNext = i<n-1 && next[1]===cur[1] && next[2]===cur[2];
+      if(i===0 || i===n-1 || holdPrev || holdNext){ m.push([0,0]); continue; }
+      const dt = next[0]-prev[0];
+      m.push([(next[1]-prev[1])/dt,(next[2]-prev[2])/dt]);
+    }
+    return function(t){
+      if(t<=kf[0][0]) return [kf[0][1],kf[0][2]];
+      if(t>=kf[n-1][0]) return [kf[n-1][1],kf[n-1][2]];
+      let i=0; while(i<n-2 && t>kf[i+1][0]) i++;
+      const a=kf[i], b=kf[i+1], h=b[0]-a[0], u=(t-a[0])/h, u2=u*u, u3=u2*u;
+      const h00=2*u3-3*u2+1, h10=u3-2*u2+u, h01=-2*u3+3*u2, h11=u3-u2;
+      return [h00*a[1]+h10*h*m[i][0]+h01*b[1]+h11*h*m[i+1][0], h00*a[2]+h10*h*m[i][1]+h01*b[2]+h11*h*m[i+1][1]];
+    };
+  }
+  const easeOut = u => 1-Math.pow(1-u,2.2);
+  function ballTrack(B){
+    return function(t){
+      if(t<=B[0][0]) return [B[0][1],B[0][2]];
+      for(let i=0;i<B.length-1;i++){
+        const a=B[i], b=B[i+1];
+        if(t<=b[0]){
+          let u=(t-a[0])/(b[0]-a[0]);
+          if(b[3]==="pass"||b[3]==="shot") u=easeOut(u);
+          return [a[1]+(b[1]-a[1])*u, a[2]+(b[2]-a[2])*u];
+        }
+      }
+      const z=B[B.length-1]; return [z[1],z[2]];
+    };
+  }
+  const fmt = v => v.toFixed(1)+" s";
+
+  // =====================================================================
+  // SCENE 1: 3rd Man concept (B2b.2)
+  // =====================================================================
+  const END1 = 8.8;
+  const SCENE1 = {
+    id:"third-man", end:END1, yMin:32.5,
+    eyebrow:"Football Model 2026 · B2b.2 Penetration",
+    title:'The <em>3rd Man</em> concept',
+    lede:"Up, back and through. Press Play and the move pauses twice so you can decide what happens next.",
+    chips:["Up","Back","Through"],
+    aria:"Vertical pitch, attacking upwards. Our 1st man passes up to the 2nd man, the 3rd man runs behind his marker, receives the lay-off facing goal, drives through the gap and scores.",
+    note:"Section B2b.2, Diagrams 1 and 2. The drive and finish at the end go beyond the manual's text, which stops once the 3rd man is free and facing goal.",
+    sampleId:"p3", sampleName:"3rd man",
+    players:[
+      {id:"p1",  team:"us", label:"1", tag:"1st man", kf:[[0,32,38],[1.2,32,38],[3.2,32,40.5],[7.4,33,48],[END1,33,49]]},
+      {id:"p2",  team:"us", label:"2", tag:"2nd man", kf:[[0,33,72],[1.2,33,72],[3.2,33,70.8],[3.6,33,70.8],[4.6,29.5,74.5],[6.6,22,81],[END1,21,83]]},
+      {id:"p3",  team:"us", label:"3", tag:"3rd man", tagPos:"above", key:true, kf:[[0,19,56],[1.6,19,56],[2.6,19.6,61],[3.6,23.3,65.2],[4.4,27.2,66.8],[5.6,30,76],[6.6,31.5,84.5],[7.4,32.2,86.5],[END1,32.4,87.2]]},
+      {id:"p3b", team:"us", label:"3", tag:"3rd man", tagPos:"right", kf:[[0,48,56],[1.6,48,56],[3.2,50,63],[4.6,49.5,72],[6.6,48.3,83],[END1,48.6,85]]},
+      {id:"o1", team:"them", kf:[[0,25,45],[1.4,25,45],[3.2,26.5,46.5],[7.4,28.5,53],[END1,29,54]]},
+      {id:"o2", team:"them", kf:[[0,40,45],[1.4,40,45],[3.2,38.5,46.5],[7.4,36,53],[END1,35.5,54]]},
+      {id:"o3", team:"them", kf:[[0,22,53],[1.6,22,53],[3.2,24.8,55],[4.4,25.2,57.6],[5.6,26.6,66],[6.6,26.8,72],[END1,27,73.5]]},
+      {id:"o4", team:"them", kf:[[0,45,53],[1.6,45,53],[3.2,47.2,58],[4.6,45.8,64],[6.6,40,70],[END1,38.5,72]]},
+      {id:"o5", team:"them", kf:[[0,33,75],[1.2,33,75],[3.2,33,73.4],[3.6,33,73.4],[4.6,30.5,76.5],[5.6,27,79.5],[6.6,24.2,83.4],[END1,23.8,85.8]]},
+      {id:"o6", team:"them", kf:[[0,44,77],[3.2,44,77],[4.6,45,78],[6.6,45.2,85.8],[END1,45,87.6]]},
+      {id:"gk", team:"them", label:"GK", gk:true, kf:[[0,34,101.5],[5.6,33.8,101],[6.6,33,99.6],[7.4,32.8,99.4],[END1,32.8,99.4]]}
+    ],
+    ball:[[0,32.5,39,"hold"],[1.2,32.5,39,"hold"],[3.2,33,70.2,"pass"],[3.6,33,70.2,"hold"],[4.4,27.7,67.6,"pass"],[6.6,31.9,85.4,"carry"],[7.4,36.2,105.2,"shot"],[END1,36.2,105.7,"carry"]],
+    passes:[
+      {from:1,to:2,team:"us",badge:"1",at:0.72,side:-1},
+      {from:3,to:4,team:"us",badge:"2",at:0.5,side:1},
+      {from:4,to:5,team:"us",style:"carry",badge:"3",at:0.5,side:-1},
+      {from:5,to:6,team:"us",style:"shot"}
+    ],
+    runs:[["p3",1.6,4.4,true],["p3b",1.6,END1,false],["p2",3.6,END1,false]],
+    phases:[
+      {to:1.2, chip:0, title:"Off the ball", text:"The 1st man has the ball on the ball line. The 2nd man is on the third line, in the same channel as the ball. The 3rd man waits on the second line, diagonal to the ball and in his marker's shadow."},
+      {to:3.2, chip:1, title:"1. Up", text:"A vertical pass from the 1st man to the 2nd man breaks the first line of pressure. While the ball is travelling, the 3rd man moves."},
+      {to:3.6, chip:1, title:"1. Up", text:"The 2nd man receives with his back to goal and a defender tight behind him."},
+      {to:4.4, chip:2, title:"2. Back", text:"He plays in front, first time, into the 3rd man's path."},
+      {to:6.6, chip:3, title:"3. Through", text:"The 3rd man receives facing goal, already past his marker. The other two runs pull the centre-backs apart, and he drives through the gap."},
+      {to:7.4, chip:3, title:"3. Through", text:"A composed finish across the goalkeeper."},
+      {to:Infinity, chip:4, title:"Up, back and through", text:"Two passes and one well-timed run take out two lines of pressure and leave the defence turning towards its own goal."}
+    ],
+    questions:[
+      {t:1.6, label:"Your call: the 3rd man",
+       prompt:"The ball is travelling to the 2nd man. You are the 3rd man. What do you do now?",
+       options:["Stay where you are so the 2nd man can find you","Move now to win the space behind your marker","Wait until the 2nd man controls the ball, then move","Come short towards the ball for a safe pass"],
+       correct:1,
+       explain:"The model says the 3rd man must win the space behind his direct opponent by moving as the ball is travelling to the 2nd man. That is the moment his marker is watching the ball."},
+      {t:3.4, label:"Your call: the 2nd man",
+       prompt:"The 2nd man has the ball, back to goal, with a defender tight behind him. The 3rd man is arriving free. What is the best option?",
+       options:["Turn and take on the defender","Play in front, first time, into the 3rd man's path","Shield the ball and wait for support","Pass back to the 1st man"],
+       correct:1,
+       explain:"The model gives the 2nd man two options when he receives: play in front, or attack facing the goal. With a defender tight on his back and a teammate arriving free and facing forward, playing in front is the back pass in up, back and through."}
+    ],
+    readouts:null,
+    overlay:{
+      build(g, el){
+        const bands = el("g",{},g);
+        [{y:38,label:"Ball line"},{y:56,label:"Second line"},{y:72,label:"Third line"}].forEach(L=>{
+          el("rect",{x:sx(0),y:sy(L.y+1.6),width:68*S,height:3.2*S,fill:"rgba(242,178,58,.10)",stroke:"rgba(242,178,58,.55)","stroke-width":1.6,"stroke-dasharray":"8 6"},bands);
+          const t = el("text",{x:sx(0.8),y:sy(L.y+1.9)-4,fill:"rgba(255,236,190,.95)","font-size":19,"font-weight":700,"letter-spacing":"0.5",class:"svgt"},bands);
+          t.textContent = L.label.toUpperCase();
+        });
+        const sh = el("g",{},g);
+        this.polys = [el("polygon",{fill:"rgba(0,0,0,.26)"},sh), el("polygon",{fill:"rgba(0,0,0,.26)"},sh)];
+        this.label = el("text",{"text-anchor":"start",fill:"rgba(255,255,255,.8)","font-size":17,"font-style":"italic",class:"svgt"},sh);
+        this.label.textContent = "marker's shadow";
+        this.sh = sh;
+      },
+      update(t, ctx){
+        const op = t<1.6 ? 1 : Math.max(0, 1-(t-1.6)/0.6);
+        this.sh.setAttribute("opacity", op.toFixed(2));
+        if(op<=0) return;
+        const b = ctx.ball(t);
+        ["o3","o4"].forEach((id,i)=>{
+          const d = ctx.pos(id,t); const vx=d[0]-b[0], vy=d[1]-b[1], L=Math.hypot(vx,vy)||1;
+          const ux=vx/L, uy=vy/L, nx=-uy, ny=ux, len=9, w0=1.4, w1=4.2;
+          const pts = [[d[0]+nx*w0,d[1]+ny*w0],[d[0]+ux*len+nx*w1,d[1]+uy*len+ny*w1],[d[0]+ux*len-nx*w1,d[1]+uy*len-ny*w1],[d[0]-nx*w0,d[1]-ny*w0]];
+          this.polys[i].setAttribute("points", pts.map(q=>`${sx(q[0]).toFixed(1)},${sy(q[1]).toFixed(1)}`).join(" "));
+          if(i===1){ this.label.setAttribute("x", sx(d[0]+ux*len)+44); this.label.setAttribute("y", sy(d[1]+uy*len)+52); }
+        });
+      }
+    }
+  };
+
+  // =====================================================================
+  // SCENE 2: Counter press (C1)
+  // =====================================================================
+  const END2 = 8.6, LOST = 2.0, WON2 = 4.6, SHOT2 = 6.75;
+  const SCENE2 = {
+    id:"counter-press", end:END2, yMin:55,
+    eyebrow:"Football Model 2026 · C1 Counter Press",
+    title:'Win it back in <em>6 seconds</em>',
+    lede:"We lose the ball in their half. Watch the count, the clock and the trap. The move pauses three times for your call.",
+    chips:["Count","Press","Counter"],
+    aria:"Their half of the pitch, attacking upwards. We lose the ball, four of our players are near it, we counter press, intercept a slow pass and score from the counter attack.",
+    note:"Section C1. The model says \"near the ball\" without giving a distance; this demo uses 10 metres. The clocks show this demo's timings against the model's targets.",
+    sampleId:"st", sampleName:"striker",
+    players:[
+      {id:"lcb", team:"us", label:"LCB", kf:[[0,26,60],[2,26,61],[4.6,27,63],[7.2,28,67],[END2,28,68]]},
+      {id:"rcb", team:"us", label:"RCB", kf:[[0,42,60],[2,41,61],[4.6,40,63],[7.2,40,67],[END2,40,68]]},
+      {id:"lfb", team:"us", label:"LFB", kf:[[0,20,68],[2,21,69],[4.6,22,71],[7.2,22,74],[END2,22,75]]},
+      {id:"lhm", team:"us", label:"LHM", kf:[[0,30,70],[2,30,71],[4.6,31,74],[7.2,31,78],[END2,31,79]]},
+      {id:"rhm", team:"us", label:"RHM", kf:[[0,39,72],[0.4,39,72],[1.4,40,75],[2,41,76.5],[3.2,42,74.5],[4.6,40,77],[7.2,39,82],[END2,39,83]]},
+      {id:"am",  team:"us", label:"AM",  kf:[[0,47,80],[0.8,46,81.5],[1.4,45.3,82.4],[2,44.6,85],[2.4,43.9,86.9],[3.6,43.6,87.2],[4.6,41.5,88],[7.2,37.8,91.5],[END2,37.5,92]]},
+      {id:"rfb", team:"us", label:"RFB", kf:[[0,55,78],[1.4,53,80],[2,52.5,81.5],[3,51.5,84.5],[4.6,52,86],[7.2,54,92],[END2,54,93]]},
+      {id:"st",  team:"us", label:"ST", kf:[[0,36,95],[1.4,36.5,93],[2,37.5,92.5],[3,40,91.5],[3.6,40.2,91.2],[4.6,36.2,87.6],[5.6,38.1,89.6],[7.2,40,95],[END2,40,96]]},
+      {id:"lwi", team:"us", label:"LWI", kf:[[0,8,89.5],[2,9,89],[4.6,15,90.5],[7.2,20,97],[END2,21,98]]},
+      {id:"rwi", team:"us", label:"RWI", kf:[[0,62,92],[2,61,92],[4.6,59.5,92.5],[5.6,55,95.5],[6.5,48,99],[6.75,47.3,99.6],[END2,46.5,100.5]]},
+      {id:"tgk", team:"them", label:"GK", gk:true, kf:[[0,34,102.5],[5.6,35,102.6],[6.7,35.5,103],[END2,35.8,103]]},
+      {id:"t2",  team:"them", label:"2",  kf:[[0,11,94],[END2,13,95]]},
+      {id:"t3",  team:"them", label:"3",  kf:[[0,26,96],[4.6,27,96],[6.5,31,98],[END2,33,99]]},
+      {id:"t4",  team:"them", label:"4",  kf:[[0,41,96],[2,41,95.5],[4.6,40.5,95.5],[5.6,41.5,96],[6.5,43.5,98],[END2,43.5,98.6]]},
+      {id:"t5",  team:"them", label:"5",  kf:[[0,56,94],[4.6,56.5,94],[5.6,57.5,94.3],[END2,55,97]]},
+      {id:"t6",  team:"them", label:"6",  kf:[[0,30,87],[2,31,87.5],[3.6,31.5,88],[4.6,32.5,88.2],[END2,33,91]]},
+      {id:"t7",  team:"them", label:"7",  kf:[[0,15,84],[END2,17,88]]},
+      {id:"t8",  team:"them", label:"8",  kf:[[0,40,88],[1.4,42,86.5],[2,43.3,86.3],[2.6,43.4,85.4],[3.6,43,85.6],[4.6,41.5,85],[END2,40,87]]},
+      {id:"t11", team:"them", label:"11", kf:[[0,55,85],[2,54.5,84.5],[4.6,55,85],[END2,52,91]]},
+      {id:"t9",  team:"them", label:"9",  kf:[[0,31,64],[4.6,32,65],[END2,33,70]]},
+      {id:"t10", team:"them", label:"10", kf:[[0,45,67],[2,44.5,67.5],[4.6,44,68],[END2,42,73]]}
+    ],
+    ball:[[0,39.5,72.8,"hold"],[0.4,39.5,72.8,"hold"],[1.4,45.6,82.6,"pass"],[1.9,44.9,85.2,"carry"],[2.0,43.7,85.8,"carry"],[2.6,43.4,84.7,"carry"],[3.6,42.6,85.3,"carry"],[4.6,36.6,87.7,"pass"],[5.6,38.7,90.3,"carry"],[6.5,48.3,99.4,"pass"],[6.75,47.9,99.9,"carry"],[7.15,34.4,105.2,"shot"],[END2,34.4,105.7,"carry"]],
+    passes:[
+      {from:1,to:2,team:"us"},
+      {from:6,to:7,team:"them"},
+      {from:7,to:8,team:"us",style:"carry"},
+      {from:8,to:9,team:"us"},
+      {from:10,to:11,team:"us",style:"shot"}
+    ],
+    runs:[["st",LOST,WON2,true],["rwi",WON2,SHOT2,false],["rfb",LOST,WON2,false],["rhm",LOST,WON2,false]],
+    phases:[
+      {to:LOST, chip:0, title:"In possession", text:"We are attacking in their half in our 2-3-2-3. Five players stay behind the ball as the rest defence."},
+      {to:2.6, chip:1, title:"1. Count", text:"We lose the ball. Before anything else, count: how many of our players are near the ball?"},
+      {to:3.6, chip:2, title:"2. Press", focus:["am","st","rfb","rhm"], text:"The closest player presses at once. The others cover the passing lanes forward and wide, and leave the lane to their #6 open as a trap."},
+      {to:WON2, chip:2, title:"2. Press", focus:["st"], text:"Under pressure, their #8 plays a slow pass into the open lane. Our striker attacks the pass, not the player."},
+      {to:5.6, chip:3, title:"3. Counter", focus:["st","rwi"], text:"Ball won back 2.6 seconds after losing it. The striker moves it straight out of the turnover area while their defence is still turning."},
+      {to:7.15, chip:3, title:"3. Counter", focus:["st","rwi"], text:"A through ball for the right winger's diagonal run, and a finish across the goalkeeper."},
+      {to:Infinity, chip:4, title:"Counter press, then counter attack", text:"Ball lost and won back inside 6 seconds, then a shot within seconds of the regain. The rest defence behind the ball was never tested."}
+    ],
+    questions:[
+      {t:2.15, label:"Your call: the whole team",
+       prompt:"We have just lost the ball. Count our players inside the circle. What does the model say to do?",
+       options:["Counter press now","Drop back into our 4-4-2 defensive shape","Hold position and wait for a mistake","Foul him straight away"],
+       correct:0,
+       explain:"Four of our players are near the ball. The model's rule: 3 or more near the ball, counter press. Fewer than 3, stop or delay the counter attack and move into the 4-4-2 shape."},
+      {t:3.75, label:"Your call: the striker",
+       prompt:"Their #8 has played a slow pass towards their #6, into the lane we left open. You are our striker. What do you do?",
+       options:["Stay goal side of their #4 to block the back pass","Attack the pass and intercept it","Press the #8 who passed it","Retreat towards halfway"],
+       correct:1,
+       explain:"A slow pass is one of the model's pressing triggers. When covering passing lanes, the model says to press the ball carrier but attack the pass, not the player, and to leave a lane open as a trap."},
+      {t:4.72, label:"Your call: after the regain",
+       prompt:"We have won it back 2.6 seconds after losing it. Their defence is still turning and our right winger is already running in behind. Counter attack or build up?",
+       options:["Counter attack now","Pass back to our centre-backs and build up","Hold the ball and wait for support","Kick it out to reset"],
+       correct:0,
+       explain:"The model's cues to counter attack straight away: space to run into, a player ahead of the ball to pass to, a chance to shoot or cross, and teammates sprinting forward. All four are here. Without them, the model says pass backwards or sideways and build up."}
+    ],
+    readouts(t, ctx){
+      const n0 = ctx.countNear(LOST);
+      return [
+        {l:"Near ball", v: t<LOST ? "·" : `${n0} in 10 m`, c: t<LOST ? "dim" : (t<WON2 ? "live" : "")},
+        {l:"Regain · 6 s", v: t<LOST ? "·" : (t<WON2 ? fmt(t-LOST) : fmt(WON2-LOST)+" ✓"), c: t<LOST ? "dim" : (t<WON2 ? "live" : "good")},
+        {l:"Shot · 12 s", v: t<WON2 ? "·" : (t<SHOT2 ? fmt(t-WON2) : fmt(SHOT2-WON2)+" ✓"), c: t<WON2 ? "dim" : (t<SHOT2 ? "live" : "good")}
+      ];
+    },
+    overlay:{
+      build(g, el){
+        this.rest = el("polygon",{fill:"rgba(255,255,255,.06)",stroke:"rgba(255,255,255,.55)","stroke-width":2,"stroke-dasharray":"6 6"},g);
+        this.restLabel = el("text",{"text-anchor":"middle",fill:"rgba(255,255,255,.85)","font-size":16,"font-weight":700,"letter-spacing":"0.5",class:"svgt"},g);
+        this.restLabel.textContent = "REST DEFENCE 2-3";
+        this.ring = el("circle",{r:10*S,fill:"rgba(242,178,58,.10)",stroke:AMBER,"stroke-width":2.5,"stroke-dasharray":"10 7"},g);
+        this.lost = el("g",{},g);
+        el("path",{d:"M-9,-9 L9,9 M9,-9 L-9,9",stroke:"#ff8574","stroke-width":4,"stroke-linecap":"round"},this.lost);
+      },
+      update(t, ctx){
+        const ids=["lcb","lfb","lhm","rhm","rcb"];
+        const pts = ids.map(id=>ctx.pos(id,t));
+        this.rest.setAttribute("points", pts.map(q=>`${sx(q[0]).toFixed(1)},${sy(q[1]).toFixed(1)}`).join(" "));
+        const cx = (pts[0][0]+pts[4][0])/2, cy = Math.min(pts[0][1],pts[4][1]);
+        this.restLabel.setAttribute("x", sx(cx)); this.restLabel.setAttribute("y", sy(cy)+30);
+        const on = t>=LOST && t<3.6;
+        this.ring.setAttribute("visibility", on?"visible":"hidden");
+        if(on){ const b = ctx.ball(LOST); this.ring.setAttribute("cx", sx(b[0])); this.ring.setAttribute("cy", sy(b[1])); this.ring.setAttribute("opacity", t<2.6 ? 1 : Math.max(0,1-(t-2.6)/1.0).toFixed(2)); }
+        const lostOn = t>=LOST && t<LOST+1.2;
+        this.lost.setAttribute("visibility", lostOn?"visible":"hidden");
+        if(lostOn){ this.lost.setAttribute("transform",`translate(${sx(43.7)},${sy(85.8)-34})`); }
+      }
+    },
+    dynamicFocus(t, ctx){ return (t>=LOST && t<2.6) ? ctx.nearIds(t) : null; }
+  };
+
+  // =====================================================================
+  // SCENE 3: Goal-kick pressing trap (C2b.5, Option 1, 4-4-2)
+  // =====================================================================
+  const END3 = 9.4, KICK = 1.0, WON3 = 5.0, SHOT3 = 7.25, SETUP_END = 3.0;
+  const SCENE3 = {
+    id:"goal-kick-press", end:END3, yMin:55,
+    eyebrow:"Football Model 2026 · C2b.5 BPO Goal Kicks, Option 1",
+    title:'The <em>goal-kick</em> pressing trap',
+    lede:"Their goal kick, our 4-4-2 trap. All 21 outfield players and their goalkeeper, as in Frank's Phase 1 and Phase 2 diagrams. Three calls to make.",
+    chips:["Steer","Spring","Win"],
+    aria:"Their half of the pitch, attacking upwards. From their goal kick our striker steers the ball wide, our left winger and striker double team their right-back in the pressing zone, win the ball and score.",
+    note:"Section C2b.5, BPO Goal-Kick Option 1 (4-4-2), Phase 1 and Phase 2 diagrams. Our goalkeeper is out of view. The block size is measured live across our ten outfield players.",
+    sampleId:"lwi", sampleName:"left winger",
+    players:[
+      {id:"st",  team:"us", label:"ST",  kf:[[0,28,88],[KICK,28,88],[1.8,24.5,90.5],[2.6,21.5,92],[3.1,20,91.5],[3.9,15.5,89.5],[4.6,8.5,88.5],[5.1,8.2,88.2],[6.0,12,90.5],[END3,13,91]]},
+      {id:"am",  team:"us", label:"AM",  kf:[[0,39.5,84.2],[KICK,39.5,84.2],[2.2,32.5,88.4],[3.4,30,88.8],[5.1,28.5,89.2],[5.6,27.8,89.8],[6.3,28,91],[END3,29.5,95.5]]},
+      {id:"lwi", team:"us", label:"LWI", kf:[[0,14.5,79],[SETUP_END,14.5,79],[3.6,12.2,81.2],[4.2,9.8,83.3],[4.7,9.2,84.0],[WON3,8.4,84.9],[5.4,8.8,85.4],[END3,10,87]]},
+      {id:"rwi", team:"us", label:"RWI", kf:[[0,53.5,79],[SETUP_END,53.5,79],[4.0,55,82.5],[5.1,52,85],[6.2,46,93.5],[6.9,43.5,97.5],[7.2,43,98.2],[END3,42.5,99]]},
+      {id:"lhm", team:"us", label:"LHM", kf:[[0,25.5,76],[2.4,25,76.5],[3.6,20,79],[4.6,17.8,80.2],[END3,19,82]]},
+      {id:"rhm", team:"us", label:"RHM", kf:[[0,42,76],[2.4,40.5,77],[3.6,37.5,78.3],[4.6,35,79.2],[END3,33,82]]},
+      {id:"lwb", team:"us", label:"LWB", kf:[[0,15,64],[2.6,14,65],[4.0,11.8,68.5],[5.1,11,70],[END3,11,71.5]]},
+      {id:"lcb", team:"us", label:"LCB", kf:[[0,27,62],[2.6,25,62.5],[4.2,21,64.5],[END3,20,66]]},
+      {id:"rcb", team:"us", label:"RCB", kf:[[0,40,62],[2.6,37,61.5],[4.2,33,62.5],[END3,31,64]]},
+      {id:"rwb", team:"us", label:"RWB", kf:[[0,53,63],[2.6,51,63],[4.2,46,64],[END3,44,66]]},
+      {id:"tgk", team:"them", label:"GK", gk:true, kf:[[0,34,100.5],[KICK,34,100.5],[2.0,33,101.5],[3.5,30,102],[5.5,29.5,102.4],[6.6,31.5,102.8],[7.3,33.2,103],[END3,33.4,103]]},
+      {id:"t3",  team:"them", label:"3",  kf:[[0,18,95],[KICK,18,95],[2.3,17.6,94.6],[3.0,17.4,94.3],[4.0,16.8,93.6],[5.4,17,93],[7.2,22,96],[END3,24,98]]},
+      {id:"t2",  team:"them", label:"2",  kf:[[0,5,83.5],[SETUP_END,5.2,83.8],[4.0,6.3,84.8],[4.7,6.8,85.2],[5.2,5.6,86.2],[END3,5.2,87]]},
+      {id:"t4",  team:"them", label:"4",  kf:[[0,50,95],[2.0,50.5,94.5],[4.0,47,94],[6.0,44,95],[6.9,40,96.4],[END3,39,97.2]]},
+      {id:"t5",  team:"them", label:"5",  kf:[[0,63,83.5],[SETUP_END,63,84],[4.0,62.5,84.5],[5.4,61,86],[END3,57,92]]},
+      {id:"t6",  team:"them", label:"6",  kf:[[0,36,86],[KICK,36,86],[2.2,35,87],[3.4,33.6,87.6],[5.1,32.5,88.4],[6.2,32,91],[END3,33.5,93.5]]},
+      {id:"t8",  team:"them", label:"8",  kf:[[0,44,79.5],[2.4,42.5,80],[3.6,39.5,81.5],[4.6,37,82.5],[END3,36,85]]},
+      {id:"t10", team:"them", label:"10", kf:[[0,27.5,79.5],[2.4,26.5,80.5],[3.6,21.5,82.5],[4.6,19.5,83.6],[END3,20.5,85]]},
+      {id:"t7",  team:"them", label:"7",  kf:[[0,6,66],[2.6,6.5,67],[4.0,7.8,70.5],[5.1,8,72.5],[END3,7.8,74.5]]},
+      {id:"t9",  team:"them", label:"9",  kf:[[0,34,65.5],[2.6,33,66],[4.2,31,66.5],[END3,29,68]]},
+      {id:"t11", team:"them", label:"11", kf:[[0,62,66],[4.2,60,67],[END3,57,69]]}
+    ],
+    ball:[[0,34,100.8,"hold"],[KICK,34,100.8,"hold"],[2.3,17.9,94.0,"pass"],[SETUP_END,17.6,93.7,"carry"],[4.2,6.6,84.6,"pass"],[4.8,6.9,85.0,"carry"],[WON3,8.4,85.4,"carry"],[5.3,8.9,85.8,"carry"],[6.0,27.6,90.4,"pass"],[6.3,28.4,91.4,"carry"],[7.1,42.7,98.0,"pass"],[SHOT3,42.8,98.3,"carry"],[7.65,36.0,105.2,"shot"],[END3,36.0,105.7,"carry"]],
+    passes:[
+      {from:1,to:2,team:"them"},
+      {from:3,to:4,team:"them"},
+      {from:7,to:8,team:"us"},
+      {from:9,to:10,team:"us"},
+      {from:11,to:12,team:"us",style:"shot"}
+    ],
+    runs:[["st",KICK,5.1,true],["am",KICK,3.4,false],["lwi",SETUP_END,WON3,true],["rwi",WON3,SHOT3,false]],
+    phases:[
+      {to:KICK, chip:0, title:"Set the trap", text:"Their goal kick. We set up in a 4-4-2 inside the width of the box, with our midfield four just behind their full-backs. The pressing zones are wide, where we want the ball to go."},
+      {to:SETUP_END, chip:1, title:"1. Steer", focus:["st","am"], text:"Their goalkeeper plays short to the #3. Our striker curves across to stop him running forward and shows him the pass to their #2. Our AM screens their #6."},
+      {to:4.2, chip:2, title:"2. Spring", focus:["lwi"], text:"The pass goes into the pressing zone. Our left winger, waiting behind and inside the #2, presses while the ball is travelling. Everyone else picks up a man."},
+      {to:WON3, chip:2, title:"2. Spring", focus:["lwi","st"], text:"Our striker closes off the pass back to the #3 and double teams the #2."},
+      {to:6.3, chip:3, title:"3. Win", focus:["lwi","am","rwi"], text:"Ball won in the pressing zone, 4.0 seconds after the goal kick. Straight out of the turnover area to our AM, the forward option."},
+      {to:7.65, chip:3, title:"3. Win", focus:["am","rwi"], text:"The right winger stayed high on the far side for exactly this. The AM finds his run, and he finishes at the near post with the keeper stranded."},
+      {to:Infinity, chip:4, title:"From their goal kick to our shot", text:"The trap turns their goal kick into our chance: ball won 4.0 seconds after the kick, and a shot 2.3 seconds later. Our two centre-backs and wing-back kept the defensive balance throughout."}
+    ],
+    questions:[
+      {t:1.5, label:"Your call: the striker",
+       prompt:"Their goalkeeper has played it short to their #3. You are our striker. What do you do?",
+       options:["Press the goalkeeper","Sprint straight at the #3 to win the ball","Curve your run to stop him running forward and show him the pass to their #2","Drop back and mark their #6"],
+       correct:2,
+       explain:"Step 1 of the model: the striker moves across to stop the #3 running forward with the ball, but encourages the pass to their #2. That pass is the trap. The model is also clear: do not press the goalkeeper."},
+      {t:3.2, label:"Your call: the left winger",
+       prompt:"The #3 has passed to their #2, into our pressing zone. You are our left winger. When do you press?",
+       options:["You should already have been tight on the #2 before the pass","Now, while the ball is travelling, to arrive on his first touch","Once he has controlled it and turned","Stay where you are and cover the space inside"],
+       correct:1,
+       explain:"Step 3 of the model: the winger starts behind and inside the #2, waits until the pass is made, then presses to win the ball. The model's pressing advice is to press while the ball is travelling or, at the very least, on the first touch."},
+      {t:5.12, label:"Your call: the left winger again",
+       prompt:"We have won the ball in the pressing zone. What next?",
+       options:["Keep it in the corner and wait for support","Play it out of the turnover area quickly, to our forward option","Pass back to our centre-backs to build up","Shoot from where you are"],
+       correct:1,
+       explain:"The model says that once the ball is regained, it should immediately be passed out of the turnover area to a player in space. In the Phase 2 diagram our AM is the forward passing option and the right winger is ready to attack the far side."}
+    ],
+    readouts(t, ctx){
+      const box = ctx.block(Math.min(t, KICK));
+      return [
+        {l:"Kick to win", v: t<KICK ? "·" : (t<WON3 ? fmt(t-KICK) : fmt(WON3-KICK)+" ✓"), c: t<KICK ? "dim" : (t<WON3 ? "live" : "good")},
+        {l:"Block size", v:`${Math.round(box.w)}×${Math.round(box.d)} m`, c: t<=KICK ? "live" : ""},
+        {l:"Win to shot", v: t<WON3 ? "·" : (t<SHOT3 ? fmt(t-WON3) : fmt(SHOT3-WON3)+" ✓"), c: t<WON3 ? "dim" : (t<SHOT3 ? "live" : "good")}
+      ];
+    },
+    overlay:{
+      build(g, el){
+        this.zones = [[0,13.84],[54.16,68]].map(([x0,x1])=>{
+          const zg = el("g",{},g);
+          el("rect",{x:sx(x0),y:sy(90.5),width:(x1-x0)*S,height:11.5*S,fill:"rgba(255,96,72,.18)",stroke:"rgba(255,120,96,.9)","stroke-width":2.2},zg);
+          const tx = el("text",{x:sx((x0+x1)/2),y:sy(79)-10,"text-anchor":"middle",fill:"#ffd2c8","font-size":15,"font-weight":700,"letter-spacing":"0.5",class:"svgt"},zg);
+          tx.textContent = "PRESSING ZONE";
+          return zg;
+        });
+        this.blockG = el("g",{},g);
+        this.rect = el("rect",{fill:"rgba(255,255,255,.05)",stroke:"rgba(255,255,255,.7)","stroke-width":2,"stroke-dasharray":"8 6",rx:6},this.blockG);
+        this.wLabel = el("text",{"text-anchor":"middle",fill:"#fff","font-size":18,"font-weight":700,stroke:"rgba(10,20,24,.8)","stroke-width":4,"paint-order":"stroke",class:"svgt"},this.blockG);
+        this.dLabel = el("text",{"text-anchor":"start",fill:"#fff","font-size":18,"font-weight":700,stroke:"rgba(10,20,24,.8)","stroke-width":4,"paint-order":"stroke",class:"svgt"},this.blockG);
+      },
+      update(t, ctx){
+        const b = ctx.ball(t);
+        const inLeft = b[0]<=13.84 && b[1]>=79 && b[1]<=90.5;
+        this.zones[0].setAttribute("opacity", inLeft ? 1 : 0.7);
+        this.zones[1].setAttribute("opacity", 0.7);
+        const op = t<=KICK ? 1 : Math.max(0, 1-(t-KICK)/0.8);
+        this.blockG.setAttribute("opacity", op.toFixed(2));
+        if(op<=0) return;
+        const box = ctx.block(Math.min(t,KICK));
+        const pad=2.2;
+        this.rect.setAttribute("x", sx(box.x0-pad)); this.rect.setAttribute("y", sy(box.y1+pad));
+        this.rect.setAttribute("width", (box.w+2*pad)*S); this.rect.setAttribute("height", (box.d+2*pad)*S);
+        this.wLabel.setAttribute("x", sx((box.x0+box.x1)/2)); this.wLabel.setAttribute("y", sy(box.y0-pad)+24);
+        this.wLabel.textContent = `${Math.round(box.w)} m wide`;
+        this.dLabel.setAttribute("x", sx(box.x1+pad)+6); this.dLabel.setAttribute("y", sy((box.y0+box.y1)/2));
+        this.dLabel.textContent = `${Math.round(box.d)} m deep`;
+      }
+    }
+  };
+
+  const SCENES = [SCENE1, SCENE2, SCENE3];
+
+  // ---------- UI ----------
+  const $ = id => document.getElementById(id);
+  const ui = {
+    play:$("playBtn"), replay:$("replayBtn"), slow:$("slowBtn"), ov:$("ovBtn"), qbtn:$("qBtn"), scrub:$("scrub"),
+    capCard:$("captionCard"), capTitle:$("capTitle"), capText:$("capText"),
+    qCard:$("qCard"), qLabel:$("qLabel"), qPrompt:$("qPrompt"), qOpts:$("qOpts"), qFeedback:$("qFeedback"),
+    qVerdict:$("qVerdict"), qExplain:$("qExplain"), qContinue:$("qContinue"),
+    chips:[$("chip1"),$("chip2"),$("chip3")], readouts:$("readouts"), svg:$("pitch"),
+    eyebrow:$("eyebrow"), title:$("title"), lede:$("lede"), note:$("sceneNote"),
+    sample:$("dataSample"), sampleLabel:$("sampleLabel"),
+    tabs:SCENES.map(s=>$("tab-"+s.id))
+  };
+  let sc = null, t = 0, playing = false, last = 0, slow = false, askQuestions = true, overlaysOn = true;
+  let results = [], shown = [], track = {}, ballAt = null, els = null;
+
+  function el(tag, attrs, parent){
+    const e = document.createElementNS(NS, tag);
+    for(const k in attrs){ if(k==="class") e.setAttribute("class",attrs[k]); else e.setAttribute(k, attrs[k]); }
+    if(parent) parent.appendChild(e); return e;
+  }
+
+  const ctx = {
+    pos:(id,tt)=>track[id](tt),
+    ball:tt=>ballAt(tt),
+    countNear(tt){ return this.nearIds(tt).length; },
+    nearIds(tt){
+      const b = ballAt(tt);
+      return sc.players.filter(p=>p.team==="us").filter(p=>{ const q=track[p.id](tt); return Math.hypot(q[0]-b[0],q[1]-b[1])<=10; }).map(p=>p.id);
+    },
+    block(tt){
+      const ps = sc.players.filter(p=>p.team==="us").map(p=>track[p.id](tt));
+      const xs = ps.map(q=>q[0]), ys = ps.map(q=>q[1]);
+      const x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
+      return {x0,x1,y0,y1,w:x1-x0,d:y1-y0};
+    }
+  };
+
+  function drawPitch(svg, yMin){
+    const H = (Y1 - yMin) * S;
+    svg.setAttribute("viewBox", `0 0 720 ${H}`);
+    const defs = el("defs",{},svg);
+    [["arrowA",AMBER],["arrowB",THEIRS],["arrowW","#fff"]].forEach(([id,c])=>{
+      const mk = el("marker",{id,viewBox:"0 0 10 10",refX:"8",refY:"5",markerWidth:"5",markerHeight:"5",orient:"auto"},defs);
+      el("path",{d:"M0,0 L10,5 L0,10 z",fill:c},mk);
+    });
+    const fade = el("linearGradient",{id:"fade",x1:"0",y1:"0",x2:"0",y2:"1"},defs);
+    el("stop",{offset:"0","stop-color":"#0d191e","stop-opacity":"0"},fade);
+    el("stop",{offset:"1","stop-color":"#0d191e","stop-opacity":"0.55"},fade);
+    el("rect",{x:0,y:0,width:720,height:H,fill:"#26663c"},svg);
+    for(let k=0;k<30;k++){
+      const yTop = 105 - k*5.25, yBot = Math.max(yMin, yTop-5.25);
+      if(yTop<=yMin) break;
+      el("rect",{x:sx(0),y:sy(yTop),width:68*S,height:(yTop-yBot)*S,fill:k%2?"#2c7444":"#307b49"},svg);
+    }
+    const mark = el("g",{fill:"none",stroke:"rgba(255,255,255,.78)","stroke-width":2.4},svg);
+    el("line",{x1:sx(0),y1:sy(105),x2:sx(0),y2:sy(yMin)},mark);
+    el("line",{x1:sx(68),y1:sy(105),x2:sx(68),y2:sy(yMin)},mark);
+    el("line",{x1:sx(0),y1:sy(105),x2:sx(68),y2:sy(105)},mark);
+    if(yMin<52.5) el("line",{x1:sx(0),y1:sy(52.5),x2:sx(68),y2:sy(52.5)},mark);
+    el("circle",{cx:sx(34),cy:sy(52.5),r:9.15*S},mark);
+    if(yMin<52.5) el("circle",{cx:sx(34),cy:sy(52.5),r:3,fill:"rgba(255,255,255,.85)",stroke:"none"},mark);
+    el("rect",{x:sx(13.84),y:sy(105),width:40.32*S,height:16.5*S},mark);
+    el("rect",{x:sx(24.84),y:sy(105),width:18.32*S,height:5.5*S},mark);
+    el("circle",{cx:sx(34),cy:sy(94),r:3,fill:"rgba(255,255,255,.85)",stroke:"none"},mark);
+    el("path",{d:`M ${sx(26.69)} ${sy(88.5)} A ${9.15*S} ${9.15*S} 0 0 0 ${sx(41.31)} ${sy(88.5)}`},mark);
+    el("path",{d:`M ${sx(0)} ${sy(104)} A ${S} ${S} 0 0 0 ${sx(1)} ${sy(105)}`},mark);
+    el("path",{d:`M ${sx(67)} ${sy(105)} A ${S} ${S} 0 0 0 ${sx(68)} ${sy(104)}`},mark);
+    el("rect",{x:sx(33.34),y:sy(106.4),width:3.32*S,height:1.4*S,fill:"rgba(255,255,255,.18)",stroke:"rgba(255,255,255,.9)","stroke-width":2.4},svg);
+    el("rect",{x:0,y:H-60,width:720,height:60,fill:"url(#fade)"},svg);
+    const ay = yMin + (105-yMin)*0.45;
+    el("path",{d:`M ${sx(69.1)} ${sy(ay-6)} L ${sx(69.1)} ${sy(ay+6)}`,stroke:"#fff","stroke-width":2,opacity:.7,"marker-end":"url(#arrowW)"},svg);
+  }
+
+  function buildScene(i){
+    sc = SCENES[i];
+    track = {}; sc.players.forEach(p=>track[p.id]=hermiteTrack(p.kf));
+    ballAt = ballTrack(sc.ball);
+    results = sc.questions.map(()=>null); shown = sc.questions.map(()=>false);
+    t = 0;
+    const svg = ui.svg; while(svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute("aria-label", sc.aria);
+    drawPitch(svg, sc.yMin);
+    const ovG = el("g",{},svg);
+    sc.overlay.build(ovG, el);
+    const runG = el("g",{fill:"none","stroke-linecap":"round"},svg);
+    const runs = sc.runs.map(r=>el("path",{stroke:r[3]?AMBER:"rgba(255,255,255,.55)","stroke-width":r[3]?3:2.2,"stroke-dasharray":"9 8"},runG));
+    const passG = el("g",{},svg);
+    const passes = sc.passes.map(p=>{
+      const col = p.team==="them" ? THEIRS : AMBER;
+      const line = el("line",{stroke:col,"stroke-width":p.style==="shot"?2.4:3.2,"stroke-linecap":"round","stroke-dasharray":p.style==="carry"?"1 7":"none"},passG);
+      let badge=null;
+      if(p.badge){
+        badge = el("g",{},passG);
+        el("circle",{r:13,fill:AMBER,stroke:"#1b1404","stroke-width":1.5},badge);
+        const tx = el("text",{"text-anchor":"middle","dominant-baseline":"central","font-size":16,"font-weight":700,fill:"#1b1404",class:"svgd"},badge);
+        tx.textContent = p.badge;
+      }
+      return {p,line,badge,col};
+    });
+    const playerG = el("g",{},svg);
+    const pEls = {};
+    sc.players.forEach(p=>{
+      const g = el("g",{},playerG);
+      const ring = el("circle",{r:24,fill:"none",stroke:AMBER,"stroke-width":2.6,opacity:.95,visibility:p.key?"visible":"hidden"},g);
+      const fill = p.team==="us" ? "#f6f5ef" : (p.gk ? "#7aa6ff" : "#3f7df2");
+      el("circle",{r:p.team==="us"?16:15,fill,stroke:"#0b1418","stroke-width":2},g);
+      if(p.label){
+        const len = p.label.length;
+        const fs = len>=3 ? 11.5 : (len===2 ? (p.team==="us"?13:15) : 18);
+        const tx = el("text",{"text-anchor":"middle","dominant-baseline":"central","font-size":fs,"font-weight":700,fill:p.team==="us"?"#122026":"#0b1418",class:"svgd"},g);
+        tx.textContent = p.label;
+      }
+      let tag=null;
+      if(p.tag || p.tags){
+        const pos = p.tagPos || "below";
+        tag = el("text",{x:pos==="right"?24:0,y:pos==="above"?-30:(pos==="right"?6:36),"text-anchor":pos==="right"?"start":"middle","font-size":17,"font-weight":700,fill:"#fff",stroke:"rgba(10,20,24,.8)","stroke-width":4,"paint-order":"stroke",class:"svgt"},g);
+        tag.textContent = p.tag || "";
+      }
+      pEls[p.id] = {g, ring, tag};
+    });
+    const ballG = el("g",{},svg);
+    el("ellipse",{cx:2,cy:5,rx:8,ry:4,fill:"rgba(0,0,0,.35)"},ballG);
+    el("circle",{r:7.5,fill:"#fffdf3",stroke:"#111","stroke-width":2},ballG);
+    els = {ovG, runs, passes, pEls, ballG};
+    ovG.setAttribute("visibility", overlaysOn?"visible":"hidden");
+
+    // header, chips, notes
+    ui.eyebrow.textContent = sc.eyebrow;
+    ui.title.innerHTML = sc.title;
+    ui.lede.textContent = sc.lede;
+    ui.chips.forEach((c,k)=>{ c.querySelector("span").textContent = sc.chips[k]; });
+    ui.note.textContent = sc.note;
+    ui.readouts.classList.toggle("hidden", !sc.readouts);
+    ui.readouts.innerHTML = "";
+    if(sc.readouts){
+      sc.readouts(0, ctx).forEach(()=>{
+        const d = document.createElement("div"); d.className="ro";
+        d.innerHTML = '<div class="l"></div><div class="v"></div>';
+        ui.readouts.appendChild(d);
+      });
+    }
+    const sp = sc.players.find(p=>p.id===sc.sampleId);
+    ui.sampleLabel.textContent = `The ${sc.sampleName}'s movement in this scene, as data (seconds, metres across, metres up the pitch):`;
+    ui.sample.textContent = '{ "player": "' + sc.sampleName + '",\n  "path": [\n' + sp.kf.map(k=>`    [${+k[0].toFixed(2)}, ${k[1]}, ${k[2]}]`).join(",\n") + '\n  ] }';
+    ui.scrub.max = sc.end;
+    ui.tabs.forEach((b,k)=>{ b.setAttribute("aria-selected", String(k===i)); b.tabIndex = k===i ? 0 : -1; });
+    document.title = "Football Model Animations";
+    closeQuestion();
+    render();
+    setPlaying(false);
+  }
+
+  function setText(node, txt){ if(node.textContent!==txt) node.textContent = txt; }
+
+  function render(){
+    const b = ballAt(t);
+    const ph = sc.phases.find(p=>t<p.to) || sc.phases[sc.phases.length-1];
+    const dyn = sc.dynamicFocus ? sc.dynamicFocus(t, ctx) : null;
+    const focus = dyn || ph.focus || [];
+    sc.players.forEach(p=>{
+      const q = track[p.id](t), e = els.pEls[p.id];
+      e.g.setAttribute("transform",`translate(${sx(q[0]).toFixed(1)},${sy(q[1]).toFixed(1)})`);
+      e.ring.setAttribute("visibility", (p.key || focus.includes(p.id)) ? "visible" : "hidden");
+      if(e.tag && p.tags){
+        let txt=""; p.tags.forEach(([tt,s])=>{ if(t>=tt) txt=s; });
+        setText(e.tag, txt);
+      }
+    });
+    els.ballG.setAttribute("transform",`translate(${sx(b[0]).toFixed(1)},${sy(b[1]).toFixed(1)})`);
+    sc.overlay.update(t, ctx);
+    sc.runs.forEach((r,i)=>{
+      if(t<=r[1]){ els.runs[i].setAttribute("d",""); return; }
+      const end = Math.min(t,r[2]); let d="";
+      for(let s=r[1]; s<=end+1e-6; s+=0.05){ const q=track[r[0]](Math.min(s,end)); d += (d?" L ":"M ")+sx(q[0]).toFixed(1)+" "+sy(q[1]).toFixed(1); }
+      els.runs[i].setAttribute("d",d);
+    });
+    els.passes.forEach(o=>{
+      const a=sc.ball[o.p.from], z=sc.ball[o.p.to];
+      if(t<=a[0]){ o.line.setAttribute("visibility","hidden"); if(o.badge) o.badge.setAttribute("visibility","hidden"); return; }
+      const endPt = t>=z[0] ? [z[1],z[2]] : ballAt(t);
+      o.line.setAttribute("visibility","visible");
+      o.line.setAttribute("x1",sx(a[1])); o.line.setAttribute("y1",sy(a[2]));
+      o.line.setAttribute("x2",sx(endPt[0])); o.line.setAttribute("y2",sy(endPt[1]));
+      if(t>=z[0] && o.p.style!=="carry") o.line.setAttribute("marker-end", o.p.team==="them"?"url(#arrowB)":"url(#arrowA)"); else o.line.removeAttribute("marker-end");
+      if(o.badge){
+        if(t>=z[0]){
+          const f=o.p.at, mx=a[1]+(z[1]-a[1])*f, my=a[2]+(z[2]-a[2])*f, dx=z[1]-a[1], dy=z[2]-a[2], L=Math.hypot(dx,dy)||1, off=2.6*o.p.side;
+          o.badge.setAttribute("transform",`translate(${sx(mx - dy/L*off).toFixed(1)},${sy(my + dx/L*off).toFixed(1)})`);
+          o.badge.setAttribute("visibility","visible");
+        } else o.badge.setAttribute("visibility","hidden");
+      }
+    });
+    let text = ph.text;
+    if(ph.chip===4 && results.some(r=>r!==null)){
+      const got = results.filter(r=>r===true).length, asked = results.filter(r=>r!==null).length;
+      text += ` You got ${got} of ${asked} calls right first time.`;
+    }
+    setText(ui.capTitle, ph.title); setText(ui.capText, text);
+    ui.chips.forEach((c,i)=>{ const n=i+1; c.classList.toggle("on", ph.chip===n); c.classList.toggle("done", ph.chip>n); });
+    if(sc.readouts){
+      const rs = sc.readouts(t, ctx);
+      [...ui.readouts.children].forEach((d,i)=>{
+        const r = rs[i]; setText(d.firstChild, r.l); setText(d.lastChild, r.v);
+        const cls = "v" + (r.c ? " "+r.c : ""); if(d.lastChild.className!==cls) d.lastChild.className = cls;
+      });
+    }
+    ui.scrub.value = t.toFixed(2);
+  }
+
+  function setPlaying(v){
+    playing = v;
+    ui.play.textContent = v ? "Pause" : (t>=sc.end ? "Play again" : (t>0 ? "Resume" : "Play"));
+    if(v){ last = performance.now(); requestAnimationFrame(tick); }
+  }
+  function tick(now){
+    if(!playing) return;
+    const dt = Math.min(0.05,(now-last)/1000); last = now;
+    const nt = t + dt*(slow?0.45:1);
+    if(askQuestions){
+      for(let i=0;i<sc.questions.length;i++){
+        const q = sc.questions[i];
+        if(!shown[i] && t < q.t && nt >= q.t){ t = q.t; render(); shown[i]=true; setPlaying(false); showQuestion(i); return; }
+      }
+    }
+    t = Math.min(sc.end, nt); render();
+    if(t>=sc.end){ setPlaying(false); return; }
+    requestAnimationFrame(tick);
+  }
+
+  function showQuestion(i){
+    const q = sc.questions[i];
+    ui.qLabel.textContent = q.label; ui.qPrompt.textContent = q.prompt;
+    ui.qOpts.innerHTML = ""; ui.qFeedback.classList.add("hidden");
+    q.options.forEach((txt,k)=>{
+      const b = document.createElement("button");
+      b.type="button"; b.className="opt"; b.id=`q${i}o${k}`;
+      b.innerHTML = `<span class="k">${"ABCD"[k]}</span><span></span>`;
+      b.lastChild.textContent = txt;
+      b.addEventListener("click",()=>answer(i,k));
+      ui.qOpts.appendChild(b);
+    });
+    ui.capCard.classList.add("hidden"); ui.qCard.classList.remove("hidden"); ui.play.disabled = true;
+    try{ ui.qCard.scrollIntoView({block:"nearest",behavior:"smooth"}); }catch(e){}
+  }
+  function answer(i,k){
+    const q = sc.questions[i], ok = k===q.correct;
+    if(results[i]===null) results[i]=ok;
+    [...ui.qOpts.children].forEach((b,j)=>{ b.disabled=true; if(j===q.correct) b.classList.add("right"); else if(j===k) b.classList.add("wrong"); });
+    ui.qVerdict.textContent = ok ? "Right." : "Not quite.";
+    ui.qVerdict.className = "verdict " + (ok ? "good" : "badv");
+    ui.qExplain.textContent = q.explain;
+    ui.qFeedback.classList.remove("hidden");
+    ui.qContinue.focus({preventScroll:true});
+  }
+  function closeQuestion(){ ui.qCard.classList.add("hidden"); ui.capCard.classList.remove("hidden"); ui.play.disabled = false; }
+  function reset(){ t=0; for(let i=0;i<shown.length;i++){ shown[i]=false; results[i]=null; } closeQuestion(); render(); }
+
+  ui.qContinue.addEventListener("click",()=>{ closeQuestion(); setPlaying(true); });
+  ui.play.addEventListener("click",()=>{ if(playing){ setPlaying(false); return; } if(t>=sc.end) reset(); setPlaying(true); });
+  ui.replay.addEventListener("click",()=>{ setPlaying(false); reset(); setPlaying(true); });
+  ui.slow.addEventListener("click",()=>{ slow=!slow; ui.slow.setAttribute("aria-pressed",String(slow)); });
+  ui.ov.addEventListener("click",()=>{ overlaysOn=!overlaysOn; ui.ov.setAttribute("aria-pressed",String(overlaysOn)); els.ovG.setAttribute("visibility", overlaysOn?"visible":"hidden"); });
+  ui.qbtn.addEventListener("click",()=>{ askQuestions=!askQuestions; ui.qbtn.setAttribute("aria-pressed",String(askQuestions)); if(!askQuestions && !ui.qCard.classList.contains("hidden")) closeQuestion(); });
+  ui.scrub.addEventListener("input",()=>{
+    setPlaying(false);
+    if(!ui.qCard.classList.contains("hidden")) closeQuestion();
+    t = parseFloat(ui.scrub.value);
+    sc.questions.forEach((q,i)=>{ if(t < q.t) shown[i]=false; });
+    render(); setPlaying(false);
+  });
+  document.addEventListener("keydown",e=>{
+    if(e.code==="Space" && !/^(BUTTON|INPUT|SUMMARY)$/.test(document.activeElement.tagName)){ e.preventDefault(); ui.play.click(); }
+  });
+
+  function sceneIndexFromHash(){
+    const h = (location.hash||"").replace("#","");
+    const i = SCENES.findIndex(s=>s.id===h);
+    return i<0 ? 0 : i;
+  }
+  ui.tabs.forEach((b,i)=>b.addEventListener("click",()=>{
+    if(location.hash !== "#"+SCENES[i].id){ try{ location.hash = SCENES[i].id; }catch(e){ buildScene(i); } }
+    else buildScene(i);
+  }));
+  window.addEventListener("hashchange",()=>buildScene(sceneIndexFromHash()));
+  buildScene(sceneIndexFromHash());
+})();
+</script>
+</body>
+</html>
